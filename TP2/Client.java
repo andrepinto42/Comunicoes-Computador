@@ -9,41 +9,28 @@ public class Client
 {
 	// initialize socket and input output streams
 	private Socket socket		 = null;
-	BufferedReader reader = null;
+	BufferedReader readerSystem = null;
 	private DataInputStream inputStream = null;
-	private DataOutputStream outputStream	 = null;
+	private DataOutputStream outputStreamSocket	 = null;
 	private BufferedReader inputWriterSocket = null;
 
 	// constructor to put ip address and port
 	public Client(String address, int port)
 	{
-		socket = OpenSocket(address,port);
-		
-		System.out.println("Waiting for a specific message :)");
-		try {
-			inputWriterSocket = new BufferedReader( new InputStreamReader(socket.getInputStream()));
-			String response = inputWriterSocket.readLine();
-			System.out.println(response);
-		}catch (Exception e){
-		}
-		
 		// establish a connection
-		outputStream = CreateClientConnection();
-
+		CreateClientConnection(address,port);
 		
-
-		if (outputStream == null) return;
+		if (outputStreamSocket == null) return;
 			
 		ReadUserInput();
 	}
+
 	public Client()
 	{
-		socket = OpenSocket();
-		
 		// establish a connection
-		outputStream = CreateClientConnection();
+		CreateClientConnection(null,-1);
 
-		if (outputStream == null) return;
+		if (outputStreamSocket == null) return;
 			
 		ReadUserInput();
 	}
@@ -55,38 +42,45 @@ public class Client
 		{
 			try
 			{
-				line = reader.readLine();
-				
-				//Sending the message to the Server	
-				if (outputStream != null) outputStream.writeUTF(line);
-				else
+				if (outputStreamSocket == null)
 				{
 					System.out.println("Output is null please restart !");
 					break;
 				}
+
+				line = readerSystem.readLine();
+				
+				//Sending the message to the Server	
+				outputStreamSocket.writeUTF(line);
+			
+				System.out.println( "Servidor respondeu = " + inputWriterSocket.readLine());
+				
 			}
 			catch(IOException i)
 			{
 				System.out.println(i);
 			}
-		}
-		// close the connection
-		try
-		{
+			finally{
+				CloseConnection();
+			}
+		}		
+	}
+	private void CloseConnection(){
+		try{
 			if (inputStream!= null) inputStream.close();
-			if (outputStream != null) outputStream.close();
+			if (outputStreamSocket != null) outputStreamSocket.close();
 			if (socket!= null) socket.close();
-		}
-		catch(IOException i)
-		{
-			System.out.println(i);
+			System.out.println("Conexão Terminada com o Servidor");
+
+		}catch (Exception e){
+			System.out.println("Erro ao fechar a conexão " + e);
 		}
 	}
 
 	public boolean SendMessageToServer(String message)
 	{
 		try {
-		if (outputStream != null) outputStream.writeUTF(message);
+		if (outputStreamSocket != null) outputStreamSocket.writeUTF(message);
 		else
 		{
 			System.out.println("Output is null please restart !");
@@ -100,22 +94,22 @@ public class Client
 
 	
 
-	private DataOutputStream CreateClientConnection() {
+	private void CreateClientConnection(String address, int port) {
+		socket = OpenSocket(address,port);
 		try
 		{
-
 			System.out.println("Connected to -> " + socket.getInetAddress().getHostName());
 			// takes input from terminal
-			reader = new BufferedReader(new InputStreamReader(System.in));
+			readerSystem = new BufferedReader(new InputStreamReader(System.in));
 
-			// sends output to the socket
-			return new DataOutputStream(socket.getOutputStream());
+			inputWriterSocket = new BufferedReader( new InputStreamReader(socket.getInputStream()));
+
+			outputStreamSocket = new DataOutputStream(socket.getOutputStream());
 		}
 		catch(Exception e)
 		{
 			System.out.println(e);
 		}
-		return  null;
 	}
 
 	public Socket OpenSocket(String address,int port)
@@ -123,38 +117,24 @@ public class Client
 		Socket s = null;
 
 		try{
-			s = new Socket(address,port);
+			if (address == null || port == -1)
+			{
+				MySocket mysocket = ReadConfigurations.ReadSocketConfiguration();
+				s = new Socket(mysocket.IpAddress,mysocket.Port);
+			}
+			else
+			{
+				s = new Socket(address,port);
+			}
+
 		} catch (Exception e){
 			System.out.println("Falha ao abrir Socket");
 			System.out.println(e);
 		}
 		return s;
 	}
-	public Socket OpenSocket()
-	{
-		Socket s = null;
 
-		MySocket mysocket = ReadConfigurations.ReadSocketConfiguration();
-		try{
-			s = new Socket(mysocket.IpAddress,mysocket.Port);
-		} catch (Exception e){
-			System.out.println("Falha ao abrir Socket ");
-			System.out.println(e);
-		}
-		return s;
-	}
 
-	private static void PrintCurrentFilesDirectory() {
-		System.out.println("Working Directory = " + System.getProperty("user.dir"));
-		File[] directory = new File(System.getProperty("user.dir")).listFiles();
-		
-		for (File file : directory) {
-			
-			if(file.isFile()){
-				System.out.println( file.getName());
-			}
-		}
-	}
 	public static void main(String args[])
 	{
 		// PrintCurrentFilesDirectory();

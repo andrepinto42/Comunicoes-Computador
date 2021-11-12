@@ -67,4 +67,16 @@ public class ComunicateWithServer {
         }
     }
 
+    private static void PrintCurrentFilesDirectory() {
+		System.out.println("Working Directory = " + System.getProperty("user.dir"));
+		File[] directory = new File(System.getProperty("user.dir")).listFiles();
+		
+		for (File file : directory) {
+			
+			if(file.isFile()){
+				System.out.println( file.getName());
+			}
+		}
+	}
+
 }

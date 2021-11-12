@@ -13,24 +13,14 @@ public class Server
 	// constructor with port
 	public Server(int port)
 	{
-		OpenFile();
 		// starts server and waits for a connection
+		InitializeServer(port);
 		try
 		{
-			server = new ServerSocket(port);
-			System.out.println("Server started");
-
-
 			while(true)
 			{
 				System.out.println("Waiting for a client ...");
 				Socket socket = server.accept();
-
-				//Creating a new outputStream
-				outWriter = new PrintWriter(socket.getOutputStream());
-				outWriter.print("OLha a mensagem");
-				outWriter.flush();
-
 
 				System.out.println("Client accepted");
 				
@@ -57,6 +47,9 @@ public class Server
 		DataInputStream inputStream = new DataInputStream(
 		new BufferedInputStream(socket.getInputStream()));
 		
+		outWriter = new PrintWriter(socket.getOutputStream());
+
+
 		HandleClientMessages(inputStream);
 		
 		System.out.println("Closing connection");
@@ -76,6 +69,8 @@ public class Server
 			try
 			{
 				line = inputStream.readUTF();
+				outWriter.print("Received");
+				outWriter.flush();
 				arr.add(line);
 				System.out.println(line);
 
@@ -97,11 +92,14 @@ public class Server
 		
 	}
 
-	private void OpenFile() {
+	private void InitializeServer(int port) {
 		try{		
 			String fileName = "test1.txt";
 			FileOutputStream fos = new FileOutputStream(fileName);
 			outStream = new DataOutputStream(new BufferedOutputStream(fos));
+			
+			server = new ServerSocket(port);
+			System.out.println("Server started");
 		}
 		catch (Exception e){
 			System.out.println(e);

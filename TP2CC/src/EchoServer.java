@@ -7,6 +7,8 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Scanner;
 
 class Pair<T1, T2> {
@@ -45,59 +47,67 @@ class HandleClient implements Runnable{
 
 public class EchoServer {
     
-    private static String FileNameToCreate = "test03.txt";
+    private static String DirectoryToShare = "/mainFolder";
 
-    public static String FileTransferName = "test.txt";   
-
-    File[] allDirectoryFiles;
-    ServerSocket ss;
     public EchoServer(){
+        ServerSocket serverSocket = null;
         try {
-            ss = new ServerSocket(12345);
-            allDirectoryFiles = new File(System.getProperty("user.dir")).listFiles();
+            serverSocket = new ServerSocket(12345);
+            File[] allDirectoryFiles = new File( System.getProperty("user.dir")+ DirectoryToShare ).listFiles();
+            
+            List<File> allFilesToSend = new ArrayList<File>();            
+            for (File file : allDirectoryFiles) {
+                if (allDirectoryFiles[i].isFile())
+                    allFilesToSend.add(file);
+
+            }
             
             File TestFile = null;
             for (int i = 0; i < allDirectoryFiles.length; i++) {
-
-                if (allDirectoryFiles[i].getName().compareTo(FileTransferName) == 0)
-                    TestFile = allDirectoryFiles[i]; 
+                if ( allDirectoryFiles[i].isFile()){
+                    TestFile = allDirectoryFiles[i];
                 }
+            }
 
             while (true) {
                 System.out.println("Esperando por Cliente...");
-                Socket socket = ss.accept();
+                Socket clientSocket = serverSocket.accept();
                 System.out.println("Cliente foi aceito com sucesso...");
 
-                BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-                PrintWriter out = new PrintWriter(socket.getOutputStream());
+                BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+                PrintWriter outputSocket = new PrintWriter(clientSocket.getOutputStream());
                 
                 /*
-                Tratar do cliente
+                 Servidor espera receber uma linha do cliente para começar a enviar mensagens
                 */
                 String line;
                 while ((line = in.readLine()) != null) {
-                    out.println(FileNameToCreate);
+
+                    outputSocket.println(TestFile.getName());
+
+                    Pair<String,Integer> pairFile = FileToString(TestFile);
                     
-                    String ContentString =  FileToString(TestFile).getKey();
-                    Integer size = FileToString(TestFile).getValue();
-                    out.println(size);
+                    String ContentString =  pairFile.getKey();
+                    Integer size = pairFile.getValue();
+                    outputSocket.println(size);
 
-                    System.out.print(ContentString);
+                    System.out.print("Este é o conteudo da messagem :\n" + ContentString);
 
-                    out.print(ContentString);
-                    out.flush();
+                    outputSocket.print(ContentString);
+                    outputSocket.flush();
                 }
                 System.out.println("Terminando Conexão com o Cliente");
-                socket.shutdownOutput();
-                socket.shutdownInput();
-                socket.close();
+                clientSocket.shutdownOutput();
+                clientSocket.shutdownInput();
+                clientSocket.close();
             }
         } catch (IOException e) {
             e.printStackTrace();
         }
         finally{
             try {
-                ss.close();                
+                serverSocket.close();
+                System.out.println("Servidor Encerrado");
             } catch (Exception e) {
                 System.out.println(e);
             }

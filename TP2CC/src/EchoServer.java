@@ -5,6 +5,8 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
@@ -50,6 +52,7 @@ public class EchoServer {
     private static String DirectoryToShare = "/mainFolder";
 
     public EchoServer(){
+        
         ServerSocket serverSocket = null;
         try {
             serverSocket = new ServerSocket(12345);
@@ -57,7 +60,7 @@ public class EchoServer {
             
             List<File> allFilesToSend = new ArrayList<File>();            
             for (File file : allDirectoryFiles) {
-                if (allDirectoryFiles[i].isFile())
+                if (file.isFile())
                     allFilesToSend.add(file);
 
             }
@@ -69,6 +72,7 @@ public class EchoServer {
                 }
             }
 
+            
             while (true) {
                 System.out.println("Esperando por Cliente...");
                 Socket clientSocket = serverSocket.accept();
@@ -83,17 +87,24 @@ public class EchoServer {
                 String line;
                 while ((line = in.readLine()) != null) {
 
-                    outputSocket.println(TestFile.getName());
+                    int numberOfFilesToSend = allFilesToSend.size();
+                    //Enviar o numero de ficheiros para transferir
+                    outputSocket.println(numberOfFilesToSend);
 
-                    Pair<String,Integer> pairFile = FileToString(TestFile);
-                    
-                    String ContentString =  pairFile.getKey();
-                    Integer size = pairFile.getValue();
-                    outputSocket.println(size);
+                    for (int i = 0; i < numberOfFilesToSend; i++) {
 
-                    System.out.print("Este é o conteudo da messagem :\n" + ContentString);
-
-                    outputSocket.print(ContentString);
+                        outputSocket.println(allFilesToSend.get(i).getName());
+    
+                        Pair<String,Integer> pairFile = FileToString(allFilesToSend.get(i));
+                        
+                        String ContentString =  pairFile.getKey();
+                        Integer size = pairFile.getValue();
+                        outputSocket.println(size);
+    
+                        System.out.print("Este é o conteudo da messagem :\n" + ContentString);
+    
+                        outputSocket.print(ContentString);
+                    }
                     outputSocket.flush();
                 }
                 System.out.println("Terminando Conexão com o Cliente");

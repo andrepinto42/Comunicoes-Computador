@@ -1,2 +1,2 @@
-# Comunicoes-Computador
-Trabalhos práticos da cadeira de Comunições por Computador
+# Comunicões de Computador
+Trabalhos práticos da cadeira de Comunições de Computador

@@ -53,7 +53,8 @@ public class Client
 				//Sending the message to the Server	
 				outputStreamSocket.writeUTF(line);
 			
-				System.out.println( "Servidor respondeu = " + inputWriterSocket.readLine());
+				
+				// System.out.println( "Servidor respondeu = " + inputWriterSocket.readLine());
 				
 			}
 			catch(IOException i)

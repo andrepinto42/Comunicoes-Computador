@@ -4,13 +4,10 @@ dasdas
 dzxcxzczx
 231
 
-
+2020130120312
 asdas
 location: class EchoServer
 1 error
 make: *** [Makefile:2: default] Error 1
 pinto@pinto-S145-15IWL:~/Documents/Comunicoes Computador/TP2CC$ make
-javac -d . src/*.java
-pinto@pinto-S145-15IWL:~/Documents/Comunicoes Computador/TP2CC$ make server
-
-s
+adsasda

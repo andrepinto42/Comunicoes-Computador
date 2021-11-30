@@ -3,84 +3,102 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
 import java.net.Socket;
+import java.util.Scanner;
 
 public class EchoClient {
 
 public static String DirectoryToSync = "/syncFolder";
-public static String IPAdress = "localhost";
-public static int portConnection = 12345;
+public static final int porta = 12345;
     public static void main(String[] args) {
         try {
-            Socket socket = new Socket(IPAdress, portConnection);
+            //Criar a socket pela qual o cliente vai comunicar com o Servidor
 
-            BufferedReader inputSocket = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-            PrintWriter outputSocket = new PrintWriter(socket.getOutputStream());
+            //Endereco IP 127.0.0.1
+            InetAddress IPAddress = InetAddress.getByName("localhost");
 
-            BufferedReader systemIn = new BufferedReader(new InputStreamReader(System.in));
+            //Mensagem que pretendemos enviar ao servidor
+            String msg = "este e o meu ficheiro de teste \nasdasda \n20 \n42 \nasda asdasda \no ficheiro chegou ao fim;;;;;";
 
-            String userInput;
-            while ((userInput = systemIn.readLine()) != null) {
+            File newFile = new File( System.getProperty("user.dir").toString() + "/novito.txt");
+            
+            if ( newFile.createNewFile() ) System.out.println("Created new file + ");
+            PrintWriter outFile = new PrintWriter(newFile);   
+            outFile.write(msg);
+            outFile.flush();
+            
+            byte[] mensagem = msg.getBytes();
 
-                if (outputSocket == null) break;
+            DatagramPacket packet   = new DatagramPacket(mensagem, mensagem.length, IPAddress, porta);
+            
+            DatagramSocket socketClient = new DatagramSocket();
+            
+            //Enviar a mensagem
+            socketClient.send(packet);
+
+            //Por enquanto tem um tamanho predefinido de 256, 
+            //sendo que nao consegue receber mensagens maiores do que isso
+            byte[] bufferReceiver = new byte[256];
+            DatagramPacket receivedPacket = new DatagramPacket(bufferReceiver, bufferReceiver.length);
+
+            //Espera receber uma resposta do servidor
+            socketClient.receive(receivedPacket);
+            String receivedString = new String( receivedPacket.getData(), 0, receivedPacket.getLength());
+            
+            //PARSING THE FIRST MESSAGE
+            String[] nameAllFiles = ParseFirstMessage(receivedString);
+            
+            
+            for (int i = 0; i < nameAllFiles.length; i++) {
+                byte[] bufferReceiverI = new byte[256];
                 
-                outputSocket.println(userInput);
-                outputSocket.flush();
+                DatagramPacket receivedPacketI = new DatagramPacket(bufferReceiverI, bufferReceiverI.length);
 
-                Integer NumberOfFiles=0;
-                try {
-                    NumberOfFiles = Integer.parseInt(inputSocket.readLine());                    
-                } catch (Exception e) {
-                    System.out.println("Não foi possivel converter o numero de ficheiros para ler");
-                    break;
-                }
-
-                System.out.println("Vou executar " + NumberOfFiles + " vezes");
+                //Espera receber uma resposta do servidor
+                socketClient.receive(receivedPacketI);
+                String receivedStringI = new String( receivedPacketI.getData(), 0, receivedPacketI.getLength());
                 
-                for (int i = 0; i < NumberOfFiles; i++) {
-                    
-                    /* 
-                        Read response from server and store it in a File
-                    */
-                    String response;
-                    
-                    //Serve para saber o nome do ficheiro que se está a receber
-                    String FileName = inputSocket.readLine();
-                    Integer FileNumberLines = 0;
-                    try {
-                        FileNumberLines = Integer.parseInt( inputSocket.readLine());
-                    }    
-                     catch (Exception e) {
-                        System.out.println("Nao foi possivel converter para um numero a LINHA lida do Socket");
-                        break;
-                    }
-
-                    String fileNameLocal = DirectoryToSync + "/" + FileName;
-                    File newFile = new File( System.getProperty("user.dir").toString() + fileNameLocal);
-                    if ( newFile.createNewFile() ) System.out.println("Created new file + " + fileNameLocal);
-
-                    PrintWriter outFile = new PrintWriter(newFile);         
-                    
-                    //Cliente recebe o conteudo do ficheiro do Servidor linha a linha e converte para um ficheiro
-                    for (int j = 0; j < FileNumberLines; j++) {
-                        response = inputSocket.readLine();
-                        outFile.println(response);
-                        System.out.println(response);
-                    }
-                    System.out.println("Written " + fileNameLocal + " sucessfully");
-                    //Assegurar que o conteudo é todo enviado para o ficheiro
-                    outFile.flush();
-                    outFile.close();
-                }
-                System.out.println("Server synchronization completed :)");
+                String fileNameLocal = DirectoryToSync + "/" + nameAllFiles[i];
+                File newFileI = new File( System.getProperty("user.dir").toString() + fileNameLocal);
+                if ( newFileI.createNewFile() ) System.out.println("Created new file + " + fileNameLocal);
+                PrintWriter outFileI = new PrintWriter(newFileI);         
+                
+                //Cliente recebe o conteudo do ficheiro vindo do servidor e guarda noutro ficheiro
+                outFileI.print(receivedStringI);
+                
+                System.out.println("Written " + fileNameLocal + " sucessfully");
+                //Assegurar que o conteudo é todo enviado para o ficheiro
+                outFileI.flush();
+                outFileI.close();
             }
-
-            socket.shutdownOutput();
-            socket.shutdownInput();
-            socket.close();
-
+            
+            outFile.close();    
+            socketClient.close();
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+    private static String[] ParseFirstMessage(String receivedString) {
+        Scanner parserScanner = new Scanner(receivedString);
+        parserScanner.useDelimiter(";");
+        
+        int numberFiles = Integer.parseInt( parserScanner.next());
+        String[] fileNames  = new String[numberFiles];
+        for (int i = 0; i < numberFiles; i++) {
+             fileNames[i] = parserScanner.next();
+
+        }
+            
+         
+        System.out.println("Received from server nºFiles =" + numberFiles);
+        for (int i = 0; i < numberFiles; i++) {
+            System.out.println(fileNames[i]);
+        }
+        
+        parserScanner.close();
+        return fileNames;
     }
 }

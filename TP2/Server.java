@@ -9,12 +9,13 @@ public class Server
 	//initialize socket and input stream
 	private ServerSocket server = null;
 	private DataOutputStream outStream = null;
-	private PrintWriter outWriter= null;
+	private PrintWriter outWriterSocket= null;
 	// constructor with port
 	public Server(int port)
 	{
 		// starts server and waits for a connection
 		InitializeServer(port);
+
 		try
 		{
 			while(true)
@@ -24,7 +25,20 @@ public class Server
 
 				System.out.println("Client accepted");
 				
-				HandleClient(socket);
+				// takes input from the client socket
+				DataInputStream inputStreamSocket = new DataInputStream(
+				new BufferedInputStream(socket.getInputStream()));
+				
+				outWriterSocket = new PrintWriter(socket.getOutputStream());
+				
+				HandleClientMessages(inputStreamSocket);
+				
+				System.out.println("Closing connection");
+				// close connection
+				socket.close();
+				inputStreamSocket.close();
+				outWriterSocket.close();
+				// HandleClient(socket);
 			}
 		}
 		catch(Exception e)
@@ -43,20 +57,7 @@ public class Server
 	}
 
 	private void HandleClient(Socket socket) throws IOException {		
-		// takes input from the client socket
-		DataInputStream inputStream = new DataInputStream(
-		new BufferedInputStream(socket.getInputStream()));
 		
-		outWriter = new PrintWriter(socket.getOutputStream());
-
-
-		HandleClientMessages(inputStream);
-		
-		System.out.println("Closing connection");
-		// close connection
-		socket.close();
-		inputStream.close();
-		outWriter.close();
 	}
 
 	private void HandleClientMessages(DataInputStream inputStream) {
@@ -69,8 +70,10 @@ public class Server
 			try
 			{
 				line = inputStream.readUTF();
-				outWriter.print("Received");
-				outWriter.flush();
+				
+				// outWriterSocket.print("Received");
+				// outWriterSocket.flush();
+				
 				arr.add(line);
 				System.out.println(line);
 

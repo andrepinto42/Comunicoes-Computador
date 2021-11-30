@@ -7,111 +7,106 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
+import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketAddress;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
 
-class Pair<T1, T2> {
-    private final T1 key;
-    private final T2 value;
-
-    public Pair(T1 first, T2 second) {
-        this.key = first;
-        this.value = second;
-    }
-
-    public T1 getKey() {
-        return key;
-    }
-
-    public T2 getValue() {
-        return value;
-    }
-}
-
 
 class HandleClient implements Runnable{
+    DatagramSocket serverSocket;
+    int porta;
+    InetAddress enderecoCliente;
+    List<File> allDirectoryFiles;
 
-    Socket socketClient;
-    public HandleClient(Socket s)
+    public HandleClient(DatagramSocket serverSocket, DatagramPacket pacote,List<File> allFiles)
     {
-        socketClient = s;
+        this.serverSocket = serverSocket;
+        porta = pacote.getPort();
+        enderecoCliente = pacote.getAddress();
+        allDirectoryFiles = allFiles;
     }
     @Override
     public void run() {
-        // TODO Auto-generated method stub
+        String temp = "";
+                
+        temp += allDirectoryFiles.size() + ";";
+        for (File f : allDirectoryFiles) {
+            temp += f.getName() +";";
+        }
+        byte[] mensagemServidor = temp.getBytes();
         
+        DatagramPacket packetMessageClient = new DatagramPacket(mensagemServidor, mensagemServidor.length, enderecoCliente, porta);
+        try {
+            
+            serverSocket.send(packetMessageClient);
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.out.println("Unable to send the first message to the client :(");
+        }
+        
+        /*Fase 2
+            Enviar em cada pacote o conteudo do ficheiro num array de bytes       
+        */
+        for (File f : allDirectoryFiles) {
+            byte[] mensagemBytes = EchoServer.FileToString(f);
+            DatagramPacket ficheiroStringI = 
+            new DatagramPacket(mensagemBytes, mensagemBytes.length, enderecoCliente, porta);
+            try {
+                serverSocket.send(ficheiroStringI);
+            } catch (Exception e) {
+                e.printStackTrace();
+                System.out.println("Unable to send the 2nd stage message to client :(");
+            }
+        }
+
+        System.out.println("Thread de envio do conteudo da pasta acabou por terminar :)");
     }
-    
 }
 
 public class EchoServer {
-    
+
     private static String DirectoryToShare = "/mainFolder";
 
-    public EchoServer(){
-        
-        ServerSocket serverSocket = null;
+    public EchoServer(){    
+        DatagramSocket serverSocket = null;
+
         try {
-            serverSocket = new ServerSocket(12345);
+            serverSocket = new DatagramSocket(12345);
+
+            //Busca todos os ficheiros da diretoria para partilhar
             File[] allDirectoryFiles = new File( System.getProperty("user.dir")+ DirectoryToShare ).listFiles();
             
+            //Guarda os ficheiros que não são pastas
             List<File> allFilesToSend = new ArrayList<File>();            
             for (File file : allDirectoryFiles) {
                 if (file.isFile())
                     allFilesToSend.add(file);
-
-            }
-            
-            File TestFile = null;
-            for (int i = 0; i < allDirectoryFiles.length; i++) {
-                if ( allDirectoryFiles[i].isFile()){
-                    TestFile = allDirectoryFiles[i];
-                }
             }
 
-            
-            while (true) {
+            while (true) 
+            {
                 System.out.println("Esperando por Cliente...");
-                Socket clientSocket = serverSocket.accept();
-                System.out.println("Cliente foi aceito com sucesso...");
-
-                BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-                PrintWriter outputSocket = new PrintWriter(clientSocket.getOutputStream());
                 
-                /*
-                 Servidor espera receber uma linha do cliente para começar a enviar mensagens
-                */
-                String line;
-                while ((line = in.readLine()) != null) {
+                //Espera receber um pacote UDP pelo Cliente
+                byte[] bufferReceiver = new byte[256];
+                DatagramPacket receivedPacket = new DatagramPacket(bufferReceiver,bufferReceiver.length);
+                serverSocket.receive(receivedPacket);
 
-                    int numberOfFilesToSend = allFilesToSend.size();
-                    //Enviar o numero de ficheiros para transferir
-                    outputSocket.println(numberOfFilesToSend);
-
-                    for (int i = 0; i < numberOfFilesToSend; i++) {
-
-                        outputSocket.println(allFilesToSend.get(i).getName());
-    
-                        Pair<String,Integer> pairFile = FileToString(allFilesToSend.get(i));
-                        
-                        String ContentString =  pairFile.getKey();
-                        Integer size = pairFile.getValue();
-                        outputSocket.println(size);
-    
-                        System.out.print("Este é o conteudo da messagem :\n" + ContentString);
-    
-                        outputSocket.print(ContentString);
-                    }
-                    outputSocket.flush();
-                }
-                System.out.println("Terminando Conexão com o Cliente");
-                clientSocket.shutdownOutput();
-                clientSocket.shutdownInput();
-                clientSocket.close();
+                String recebido = new String(receivedPacket.getData(), 0, receivedPacket.getLength());
+                
+                System.out.println("SERVIDOR recebeu um " + recebido);
+                
+                //Caso o cliente deseje interromper o servidor
+                if (recebido.equals("over")) break;
+            
+                HandleClient threadClient = new HandleClient(serverSocket,receivedPacket,allFilesToSend);
+                threadClient.run();
             }
+            
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -125,26 +120,23 @@ public class EchoServer {
         }
     }
 
-    public Pair<String,Integer> FileToString(File file)
+    public static byte[] FileToString(File file)
     {
         StringBuilder sb = new StringBuilder();
-        int size = 0;
         try {
             Scanner myReader = new Scanner(file);
 
             while (myReader.hasNextLine()) {
-                size++;
               String data = myReader.nextLine();
               sb.append(data).append("\n");
             }
-
             myReader.close();
           } catch (Exception e) {
             System.out.println("An error occurred.");
             e.printStackTrace();
           }
 
-          return new Pair<String,Integer>((String) sb.toString(),(Integer) size);
+          return sb.toString().getBytes();
     }
     public static void main(String[] args) {
         new EchoServer();

@@ -41,7 +41,6 @@ class HandleClient implements Runnable{
         
         DatagramPacket packetMessageClient = new DatagramPacket(mensagemServidor, mensagemServidor.length, enderecoCliente, porta);
         try {
-            
             serverSocket.send(packetMessageClient);
         } catch (Exception e) {
             e.printStackTrace();
@@ -62,7 +61,7 @@ class HandleClient implements Runnable{
                 System.out.println("Unable to send the 2nd stage message to client :(");
             }
         }
-
+        
         System.out.println("Thread de envio do conteudo da pasta acabou por terminar :)");
     }
 }
@@ -70,12 +69,13 @@ class HandleClient implements Runnable{
 public class EchoServer {
 
     private static String DirectoryToShare = "/mainFolder";
+    private static final int portaServidor = 12345;
 
     public EchoServer(){    
         DatagramSocket serverSocket = null;
 
         try {
-            serverSocket = new DatagramSocket(12345);
+            serverSocket = new DatagramSocket(portaServidor);
 
             //Busca todos os ficheiros da diretoria para partilhar
             File[] allDirectoryFiles = new File( System.getProperty("user.dir")+ DirectoryToShare ).listFiles();
@@ -89,7 +89,7 @@ public class EchoServer {
 
             while (true) 
             {
-                System.out.println("Esperando por Cliente...");
+                System.out.print("\n-----------------\n\nEsperando por Cliente...");
                 
                 //Espera receber um pacote UDP pelo Cliente
                 byte[] bufferReceiver = new byte[256];
@@ -98,7 +98,7 @@ public class EchoServer {
 
                 String recebido = new String(receivedPacket.getData(), 0, receivedPacket.getLength());
                 
-                System.out.println("SERVIDOR recebeu um " + recebido);
+                System.out.println("\nSERVIDOR recebeu um " + recebido);
                 
                 //Caso o cliente deseje interromper o servidor
                 if (recebido.equals("over")) break;

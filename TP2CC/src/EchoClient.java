@@ -1,6 +1,7 @@
 package bin;
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.DatagramPacket;
@@ -13,57 +14,41 @@ public class EchoClient {
 
 public static String DirectoryToSync = "/syncFolder";
 public static final int porta = 12345;
+
+//Endereco IP 127.0.0.1
+public static InetAddress IPAddress;
+public static DatagramSocket socketClient;
+
     public static void main(String[] args) {
         try {
-            //Criar a socket pela qual o cliente vai comunicar com o Servidor
+            try { IPAddress= InetAddress.getByName("localhost");}
+            catch (Exception e) { e.printStackTrace();}
 
-            //Endereco IP 127.0.0.1
-            InetAddress IPAddress = InetAddress.getByName("localhost");
-
-            //Mensagem que pretendemos enviar ao servidor
-            String msg = "este e o meu ficheiro de teste \nasdasda \n20 \n42 \nasda asdasda \no ficheiro chegou ao fim;;;;;";
-
-            File newFile = new File( System.getProperty("user.dir").toString() + "/novito.txt");
+            socketClient = new DatagramSocket();
             
-            if ( newFile.createNewFile() ) System.out.println("Created new file + ");
-            PrintWriter outFile = new PrintWriter(newFile);   
-            outFile.write(msg);
-            outFile.flush();
-            
-            byte[] mensagem = msg.getBytes();
+            //Change this message to become a input message from the user
+            String msg = "Hello there server";
 
-            DatagramPacket packet   = new DatagramPacket(mensagem, mensagem.length, IPAddress, porta);
-            
-            DatagramSocket socketClient = new DatagramSocket();
-            
-            //Enviar a mensagem
-            socketClient.send(packet);
+            //Enviar a primeira mensagem que queremos comunicar com o servidor
+            SendMessageServer(msg);
 
-            //Por enquanto tem um tamanho predefinido de 256, 
-            //sendo que nao consegue receber mensagens maiores do que isso
-            byte[] bufferReceiver = new byte[256];
-            DatagramPacket receivedPacket = new DatagramPacket(bufferReceiver, bufferReceiver.length);
-
-            //Espera receber uma resposta do servidor
-            socketClient.receive(receivedPacket);
-            String receivedString = new String( receivedPacket.getData(), 0, receivedPacket.getLength());
+            String receivedString = GetMessageServer();
             
-            //PARSING THE FIRST MESSAGE
+            /*PARSING THE FIRST MESSAGE
+                @nameAllFiles -> contem o nome dos ficheiros que tem de ser criados
+            */
             String[] nameAllFiles = ParseFirstMessage(receivedString);
             
-            
             for (int i = 0; i < nameAllFiles.length; i++) {
-                byte[] bufferReceiverI = new byte[256];
-                
-                DatagramPacket receivedPacketI = new DatagramPacket(bufferReceiverI, bufferReceiverI.length);
 
-                //Espera receber uma resposta do servidor
-                socketClient.receive(receivedPacketI);
-                String receivedStringI = new String( receivedPacketI.getData(), 0, receivedPacketI.getLength());
-                
+                //Espera receber uma resposta do servidor com o conteudo do ficheiro
+                String receivedStringI = GetMessageServer();
+
                 String fileNameLocal = DirectoryToSync + "/" + nameAllFiles[i];
                 File newFileI = new File( System.getProperty("user.dir").toString() + fileNameLocal);
                 if ( newFileI.createNewFile() ) System.out.println("Created new file + " + fileNameLocal);
+                else                            System.out.println("Updated file -> " + fileNameLocal);
+                
                 PrintWriter outFileI = new PrintWriter(newFileI);         
                 
                 //Cliente recebe o conteudo do ficheiro vindo do servidor e guarda noutro ficheiro
@@ -75,12 +60,31 @@ public static final int porta = 12345;
                 outFileI.close();
             }
             
-            outFile.close();    
             socketClient.close();
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
+
+    private static String GetMessageServer() throws IOException {
+        //Por enquanto tem um tamanho predefinido de 256, 
+        //sendo que nao consegue receber mensagens maiores do que isso
+        byte[] bufferReceiver = new byte[256];
+        DatagramPacket receivedPacket = new DatagramPacket(bufferReceiver, bufferReceiver.length);
+
+        //Espera receber uma resposta do servidor
+        socketClient.receive(receivedPacket);
+        String receivedString = new String( receivedPacket.getData(), 0, receivedPacket.getLength());
+        return receivedString;
+    }
+
+    private static void SendMessageServer(String msg) throws IOException {
+        byte[] mensagem = msg.getBytes();
+        DatagramPacket packet   = new DatagramPacket(mensagem, mensagem.length, IPAddress, porta);
+        
+        socketClient.send(packet);
+    }
+
     private static String[] ParseFirstMessage(String receivedString) {
         Scanner parserScanner = new Scanner(receivedString);
         parserScanner.useDelimiter(";");

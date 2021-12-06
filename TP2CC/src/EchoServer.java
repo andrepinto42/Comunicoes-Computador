@@ -12,6 +12,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketAddress;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Scanner;
 
@@ -31,11 +32,13 @@ class HandleClient implements Runnable{
     }
     @Override
     public void run() {
+        long startTimer = System.currentTimeMillis();
+
         String temp = "";
                 
         temp += allDirectoryFiles.size() + ";";
         for (File f : allDirectoryFiles) {
-            temp += f.getName() +";";
+            temp += f.getName() +";" + f.length() + ";";
         }
         byte[] mensagemServidor = temp.getBytes();
         
@@ -51,18 +54,28 @@ class HandleClient implements Runnable{
             Enviar em cada pacote o conteudo do ficheiro num array de bytes       
         */
         for (File f : allDirectoryFiles) {
+            //Só consegue obter em array 2^32 bytes de um ficheiro
             byte[] mensagemBytes = EchoServer.FileToString(f);
-            DatagramPacket ficheiroStringI = 
-            new DatagramPacket(mensagemBytes, mensagemBytes.length, enderecoCliente, porta);
-            try {
-                serverSocket.send(ficheiroStringI);
-            } catch (Exception e) {
-                e.printStackTrace();
-                System.out.println("Unable to send the 2nd stage message to client :(");
+
+            int numberPackets =(int) Math.ceil( mensagemBytes.length / (float) EchoServer.bufferSize);
+            for (int i = 0; i < numberPackets; i++) {
+                int offset = i * EchoServer.bufferSize;
+                int length = (i + 1 == numberPackets) ? (mensagemBytes.length % EchoServer.bufferSize) : EchoServer.bufferSize ; 
+                DatagramPacket packetFicheiroI = 
+                new DatagramPacket(mensagemBytes ,offset, length, enderecoCliente, porta);
+                try {
+                    serverSocket.send(packetFicheiroI);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    System.out.println("Unable to send the 2nd stage message to client :(");
+                }      
             }
+            //Inicialmente estava a se executar uma copia do array para obter os elementos de um certo intervalo
+            //Foi descoberto que o datagrampacket Construtor pode levar um parametro offset do Array           
         }
-        
-        System.out.println("Thread de envio do conteudo da pasta acabou por terminar :)");
+        long endTimer  = System.currentTimeMillis();
+        long timeExecution = endTimer - startTimer;
+        System.out.println("Thread de envio do conteudo da pasta concluido Tempo = " +timeExecution + " ms");
     }
 }
 
@@ -70,7 +83,7 @@ public class EchoServer {
 
     private static String DirectoryToShare = "/mainFolder";
     private static final int portaServidor = 12345;
-
+    public static final int bufferSize = 1024;
     public EchoServer(){    
         DatagramSocket serverSocket = null;
 
@@ -92,7 +105,7 @@ public class EchoServer {
                 System.out.print("\n-----------------\n\nEsperando por Cliente...");
                 
                 //Espera receber um pacote UDP pelo Cliente
-                byte[] bufferReceiver = new byte[256];
+                byte[] bufferReceiver = new byte[bufferSize];
                 DatagramPacket receivedPacket = new DatagramPacket(bufferReceiver,bufferReceiver.length);
                 serverSocket.receive(receivedPacket);
 
@@ -123,6 +136,7 @@ public class EchoServer {
     public static byte[] FileToString(File file)
     {
         StringBuilder sb = new StringBuilder();
+        
         try {
             Scanner myReader = new Scanner(file);
 
@@ -135,10 +149,11 @@ public class EchoServer {
             System.out.println("An error occurred.");
             e.printStackTrace();
           }
-
+        
           return sb.toString().getBytes();
     }
     public static void main(String[] args) {
         new EchoServer();
     }
+
 }

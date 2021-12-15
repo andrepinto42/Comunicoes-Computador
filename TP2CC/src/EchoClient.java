@@ -11,16 +11,13 @@ import java.net.Socket;
 import java.util.Scanner;
 
 
-public class EchoClient {
-
-    public static String DirectoryToSync = "/syncFolder";
-    public static final int porta = 12345;
-    
+public class EchoClient {    
     //Endereco IP 127.0.0.1
     public static InetAddress IPAddress;
     public static DatagramSocket socketClient;
 
-    public static void main(String[] args) {
+    public EchoClient()
+    {
         try {
              
             try { IPAddress= InetAddress.getByName("localhost");}
@@ -43,6 +40,13 @@ public class EchoClient {
             String[] nameAllFiles = mypair.getKey();
             Integer[] sizeFiles = mypair.getValue();
             
+            //Criar nova diretoria se for necessário
+            File newDirectory = new File( System.getProperty("user.dir").toString() + DirectoryToSync+"/");
+            if(newDirectory.mkdirs()) System.out.println("Created a new directory ->" + DirectoryToSync);
+            
+            //Verificar o tamanho dos novos ficheiros após a sua transferencia
+            long[] sizeAllFilesTransfered = new long[nameAllFiles.length];
+           
             for (int i = 0; i < nameAllFiles.length; i++) {
 
                 String fileNameLocal = DirectoryToSync + "/" + nameAllFiles[i];
@@ -58,25 +62,73 @@ public class EchoClient {
 
                 for (int j = 0; j < numberPackets; j++) {
                     //Espera receber array de bytes até 1024 vindo do servidor                
-                    String receivedString2 = GetMessageServer();
+                    String receivedStringJ = GetMessageServer();
                     
                     //Cliente recebe o conteudo do ficheiro vindo do servidor e guarda noutro ficheiro
-                    outFileI.print(receivedString2);   
+                    outFileI.print(receivedStringJ);   
                 }
                 
                 System.out.println("Written " + fileNameLocal + " sucessfully");
                 //Assegurar que o conteudo é todo enviado para o ficheiro
                 outFileI.flush();
                 outFileI.close();
+
+                sizeAllFilesTransfered[i] = newFileI.length();
             }
             
+            ValidationFiles(nameAllFiles, sizeAllFilesTransfered);
+           
             socketClient.close();
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-    private static String GetMessageServer() throws IOException {
+    private void ValidationFiles(String[] nameAllFiles, long[] sizeAllFilesTransfered) throws IOException {
+        System.out.println("\n\n\nValidando ficheiros recebidos...");
+        
+        StringBuilder sbValidation = new StringBuilder();
+        for (int i = 0; i < sizeAllFilesTransfered.length; i++) {
+            sbValidation.append(nameAllFiles[i]).append(";");
+            sbValidation.append(sizeAllFilesTransfered[i]).append(";");
+        }
+
+        SendMessageServer(sbValidation.toString());
+        System.out.println("\n\n");
+        
+        //Cliente espera por verificacao do servidor, se os ficheiros estiverem incorretos o servidor tem de reenviar
+        String messageServerValidation = GetMessageServer();
+        
+        if (! messageServerValidation.equals("200"))
+        {
+            System.out.println("Ocorreu um erro na transferencia de ficheiros :(");
+            HandleInvalidFile();
+        }
+        else
+        System.out.println("Validação completa com sucesso");
+    }
+
+    public void HandleInvalidFile()
+    {
+
+    }
+
+    public  static String DirectoryToSync = "/syncFolder";
+    public static int porta = 12345;
+    public static void main(String[] args) {
+        if (args.length >= 1)
+        DirectoryToSync = "/" + args[0];
+
+        if (args.length >= 2){
+            try {
+                porta = Integer.parseInt(args[1]);
+            } catch (Exception e) { porta = 12345;}
+        }
+
+        new EchoClient();
+    }
+
+    private  String GetMessageServer() throws IOException {
         //Por enquanto tem um tamanho predefinido de 256, 
         //sendo que nao consegue receber mensagens maiores do que isso
         byte[] bufferReceiver = new byte[EchoServer.bufferSize];
@@ -88,13 +140,14 @@ public class EchoClient {
         return receivedString;
     }
 
-    private static void SendMessageServer(String msg) throws IOException {
+    private  void SendMessageServer(String msg) throws IOException {
         byte[] mensagem = msg.getBytes();
         DatagramPacket packet   = new DatagramPacket(mensagem, mensagem.length, IPAddress, porta);
         
         socketClient.send(packet);
     }
 
+    //Parsing of the protocol FT-Rapid
     private static Pair<String[],Integer[]> ParseFirstMessage(String receivedString) {
         Scanner parserScanner = new Scanner(receivedString);
         parserScanner.useDelimiter(";");

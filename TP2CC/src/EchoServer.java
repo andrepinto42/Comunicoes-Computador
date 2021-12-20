@@ -12,6 +12,7 @@ import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketAddress;
+import java.net.SocketException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -19,15 +20,10 @@ import java.util.Scanner;
 
 public class EchoServer {
 
-    private static final int portaServidor = 12345;
-    public static final int bufferSize = 1024;
-    static DatagramSocket serverSocket = null;
 
     public EchoServer(){    
         try {
-            serverSocket = new DatagramSocket(null);
-            InetSocketAddress address = new InetSocketAddress(IpAdressNumber, portaServidor);
-            serverSocket.bind(address);
+          
             //Busca todos os ficheiros da diretoria para partilhar
             File[] allDirectoryFiles = new File( System.getProperty("user.dir")+ DirectoryToShare ).listFiles();
             
@@ -55,9 +51,8 @@ public class EchoServer {
                 threadClient.run();
             }
             
-        } catch (IOException e) {
+        } catch (Exception e) {
             e.printStackTrace();
-
             serverSocket.close();
             System.out.println("Servidor Encerrado");
         }
@@ -101,13 +96,23 @@ public class EchoServer {
     }
 
     private static String DirectoryToShare = "/mainFolder";
-    public static String IpAdressNumber = "10.1.1.1";
-
-    public static void main(String[] args) {
+    public static String IpAdressNumber = "127.0.0.1";
+    private static final int portaServidor = 12345;
+    public static final int bufferSize = 1024;
+    static DatagramSocket serverSocket = null;
+    public static void main(String[] args) throws SocketException {
+        
         
         if (args.length >= 1)
             DirectoryToShare = "/" + args[0];
+        if (args.length >=2)
+            IpAdressNumber = args[1];
         
+        serverSocket = new DatagramSocket(null);
+        InetSocketAddress address = new InetSocketAddress(IpAdressNumber, portaServidor);
+        serverSocket.bind(address);
+
+        System.out.println("Server connected to port " + portaServidor + " and IP: " + IpAdressNumber);
         new EchoServer();
     }
 

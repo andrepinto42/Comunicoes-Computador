@@ -140,7 +140,7 @@ public class EchoClient {
         IPAddress = InetAddress.getByName(IpAdressNumber);
         
         socketClient = new DatagramSocket(null);
-     
+        System.out.println("Client connected to port " + porta + " and IP: " + IpAdressNumber);
         new EchoClient();
     }
 
@@ -192,10 +192,11 @@ public class EchoClient {
              fileSizes[i] = Integer.parseInt( parserScanner.next());
         }     
          
-        System.out.println("Received from server nºFiles =" + numberFiles);
+        System.out.println("Received from server "+ numberFiles +" Files");
         for (int i = 0; i < numberFiles; i++) {
-            System.out.println("Sync " + fileNames[i]+ " size = " + fileSizes[i]+"bits");
+            System.out.println(fileNames[i]+ " | Size = " + fileSizes[i]+" bits");
         }
+        System.out.println("\n----------------------------------\n");
         Pair<String[],Integer[]> mypair = new Pair<>(fileNames,fileSizes);
         parserScanner.close();
         return mypair;

@@ -8,6 +8,7 @@ import java.io.PrintWriter;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketAddress;
@@ -24,8 +25,9 @@ public class EchoServer {
 
     public EchoServer(){    
         try {
-            serverSocket = new DatagramSocket(portaServidor);
-            
+            serverSocket = new DatagramSocket(null);
+            InetSocketAddress address = new InetSocketAddress(IpAdressNumber, portaServidor);
+            serverSocket.bind(address);
             //Busca todos os ficheiros da diretoria para partilhar
             File[] allDirectoryFiles = new File( System.getProperty("user.dir")+ DirectoryToShare ).listFiles();
             
@@ -99,12 +101,13 @@ public class EchoServer {
     }
 
     private static String DirectoryToShare = "/mainFolder";
+    public static String IpAdressNumber = "10.1.1.1";
 
     public static void main(String[] args) {
         
         if (args.length >= 1)
             DirectoryToShare = "/" + args[0];
-
+        
         new EchoServer();
     }
 

@@ -1,37 +1,43 @@
 package bin;
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
-import java.net.Socket;
+import java.net.InetSocketAddress;
+import java.net.SocketException;
+import java.net.UnknownHostException;
 import java.util.Scanner;
 
 
 public class EchoClient {    
     //Endereco IP 127.0.0.1
-    public static InetAddress IPAddress;
-    public static DatagramSocket socketClient;
 
+    // public static String IpAdressNumber = "127.0.0.1";
     public EchoClient()
     {
         try {
-             
-            try { IPAddress= InetAddress.getByName("localhost");}
-            catch (Exception e) { e.printStackTrace();}
-
-            socketClient = new DatagramSocket();
+            
+            //Um cliente não pode dar bind a uma socket pois ele não pode atender pedidos
+            // InetSocketAddress address = new InetSocketAddress(IpAdressNumber, portaServidor);
+            // socketClient.bind(address);
+            
             
             //Change this message to become a input message from the user
             String msg = "Hello there server";
 
             //Enviar a primeira mensagem que queremos comunicar com o servidor
             SendMessageServer(msg);
-
-            String receivedString = GetMessageServer();
+            
+            String receivedString = null;
+            try {
+                receivedString = GetMessageServer();  
+            } catch (Exception e) {
+                System.out.println(e);
+                System.out.println("Cliente shutting down");
+                return;
+            } 
             
             /*PARSING THE FIRST MESSAGE
                 @nameAllFiles -> contem o nome dos ficheiros que tem de ser criados
@@ -97,8 +103,12 @@ public class EchoClient {
         System.out.println("\n\n");
         
         //Cliente espera por verificacao do servidor, se os ficheiros estiverem incorretos o servidor tem de reenviar
-        String messageServerValidation = GetMessageServer();
-        
+        String messageServerValidation = null;
+        try {
+            messageServerValidation = GetMessageServer();  
+        } catch (Exception e) {
+            System.out.println(e);
+        }    
         if (! messageServerValidation.equals("200"))
         {
             System.out.println("Ocorreu um erro na transferencia de ficheiros :(");
@@ -113,22 +123,42 @@ public class EchoClient {
 
     }
 
-    public  static String DirectoryToSync = "/syncFolder";
+
+    public static InetAddress IPAddress;
+    public static DatagramSocket socketClient;
+    public static String DirectoryToSync = "/syncFolder";
     public static int porta = 12345;
-    public static void main(String[] args) {
+    public static String IpAdressNumber = "localhost";
+
+    public static void main(String[] args) throws UnknownHostException, SocketException {
         if (args.length >= 1)
         DirectoryToSync = "/" + args[0];
 
-        if (args.length >= 2){
-            try {
-                porta = Integer.parseInt(args[1]);
-            } catch (Exception e) { porta = 12345;}
-        }
-
+        if (args.length >= 2)
+           IpAdressNumber = args[1];
+            
+        IPAddress = InetAddress.getByName(IpAdressNumber);
+        
+        socketClient = new DatagramSocket(null);
+     
         new EchoClient();
     }
 
+   /*
+   ------------------------------------
+    
+   
+   
+                Helper functions
+   
+   
+   
+   
+   ------------------------------------
+    */
+   
     private  String GetMessageServer() throws IOException {
+        
         //Por enquanto tem um tamanho predefinido de 256, 
         //sendo que nao consegue receber mensagens maiores do que isso
         byte[] bufferReceiver = new byte[EchoServer.bufferSize];
@@ -137,6 +167,8 @@ public class EchoClient {
         //Espera receber uma resposta do servidor
         socketClient.receive(receivedPacket);
         String receivedString = new String( receivedPacket.getData(), 0, receivedPacket.getLength());
+        
+        
         return receivedString;
     }
 

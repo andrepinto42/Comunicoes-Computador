@@ -30,9 +30,9 @@ public class EchoClient {
             //Enviar a primeira mensagem que queremos comunicar com o servidor
             SendMessageServer(msg);
             
-            String receivedString = null;
+            String firstReceivedString = null;
             try {
-                receivedString = GetMessageServer();  
+                firstReceivedString = GetMessageServer();  
             } catch (Exception e) {
                 System.out.println(e);
                 System.out.println("Cliente shutting down");
@@ -42,7 +42,7 @@ public class EchoClient {
             /*PARSING THE FIRST MESSAGE
                 @nameAllFiles -> contem o nome dos ficheiros que tem de ser criados
             */
-            Pair<String[],Integer[]> mypair =  ParseFirstMessage(receivedString); 
+            Pair<String[],Integer[]> mypair =  ParseFirstMessage(firstReceivedString); 
             String[] nameAllFiles = mypair.getKey();
             Integer[] sizeFiles = mypair.getValue();
             
@@ -73,7 +73,6 @@ public class EchoClient {
                     //Cliente recebe o conteudo do ficheiro vindo do servidor e guarda noutro ficheiro
                     outFileI.print(receivedStringJ);   
                 }
-                
                 System.out.println("Written " + fileNameLocal + " sucessfully");
                 //Assegurar que o conteudo é todo enviado para o ficheiro
                 outFileI.flush();
@@ -99,6 +98,7 @@ public class EchoClient {
             sbValidation.append(sizeAllFilesTransfered[i]).append(";");
         }
 
+        System.out.println("Sent to server -> " + sbValidation.toString());
         SendMessageServer(sbValidation.toString());
         System.out.println("\n\n");
         

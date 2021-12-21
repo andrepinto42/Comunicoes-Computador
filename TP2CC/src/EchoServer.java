@@ -5,6 +5,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
+import java.io.Reader;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
@@ -71,10 +72,14 @@ public class EchoServer {
         
         try {
             Scanner myReader = new Scanner(file);
-
-            while (myReader.hasNextLine()) {
+            while (myReader.hasNext()) {
               String data = myReader.nextLine();
               sb.append(data).append("\n");
+            }            
+            if (file.length() != sb.length())
+            {
+                //Remove the last \n only if there is not a newline            
+                sb.delete(sb.length()-1, sb.length());
             }
             myReader.close();
           } catch (Exception e) {
@@ -96,7 +101,7 @@ public class EchoServer {
     }
 
     private static String DirectoryToShare = "/mainFolder";
-    public static String IpAdressNumber = "127.0.0.1";
+    public static String IpAdressNumber = "localhost";
     private static final int portaServidor = 12345;
     public static final int bufferSize = 1024;
     static DatagramSocket serverSocket = null;

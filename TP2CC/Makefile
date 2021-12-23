@@ -1,9 +1,7 @@
-INPUT = /syncing
-
 default:
 	javac -d . src/*.java
 clean:
-	rm src/*.class
+	rm bin/*.class
 client:
 	java bin.EchoClient $(filter-out $@,$(MAKECMDGOALS))
 server:

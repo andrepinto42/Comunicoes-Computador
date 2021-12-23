@@ -44,6 +44,7 @@ public class HandleClient implements Runnable{
 
         // tamanho;nomeFicheiro1;tamanhoFicheiro1;nomeFicheiro2;tamanhoFicheiro2;........
         SendMessageClient(temp);
+        System.out.println("Sent to Client:\n" + temp);
         
         /*Fase 2
             Enviar em cada pacote o conteudo do ficheiro num array de bytes       
@@ -57,7 +58,6 @@ public class HandleClient implements Runnable{
             for (int i = 0; i < numberPackets; i++) {
                 int offset = i * EchoServer.bufferSize;
                 int length = (i + 1 == numberPackets) ? (mensagemBytes.length % EchoServer.bufferSize) : EchoServer.bufferSize ; 
-                
                 SendMessageClient(mensagemBytes, length, offset);    
             }
             //Inicialmente estava a se executar uma copia do array para obter os elementos de um certo intervalo
@@ -67,7 +67,7 @@ public class HandleClient implements Runnable{
         long timeExecution = endTimer - startTimer;
         System.out.println("Thread de envio do conteudo da pasta concluido Tempo = " +timeExecution + " ms");
         
-        System.out.println("Debito " + (allFileSizesLong/ timeExecution) + " bits/s");
+        System.out.println("Debito " + ( (allFileSizesLong * 1000)/ timeExecution) + " bytes/s");
 
         boolean isValid = WaitforValidation(allDirectoryFiles);
         SendMessageClient(isValid ? "200" : "Error");
